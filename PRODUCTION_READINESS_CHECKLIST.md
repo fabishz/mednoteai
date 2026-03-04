@@ -1,140 +1,86 @@
-# MedNoteAI Production Readiness Checklist
+# MedNoteAI Production Readiness Checklist (Phased)
 
-## Integration Architecture ✅
+Use this plan in order. Do not move to the next phase until the current phase gate is fully green.
 
-- [x] Centralized API client with axios
-- [x] Base URL configuration via environment variables (VITE_API_URL)
-- [x] Request/Response interceptors implemented
-- [x] Global error handling with ApiError class
-- [x] Request cancellation support
-- [x] Standardized response parsing (API envelope)
-- [x] Service layer structure (/src/services/)
-  - [x] apiClient.ts - Core HTTP client
-  - [x] auth.ts - Authentication service  
-  - [x] notes.ts - Notes service
-  - [x] patients.ts - Patients service
+## Phase 1: Safe MVP Launch (Now)
 
-## Authentication Flow ✅
+### Backend safety baseline
+- [ ] Set strong secrets and production env vars (`JWT_SECRET`, `DATABASE_URL`, `AI_API_KEY`, `NODE_ENV=production`)
+- [ ] Set `CORS_ORIGIN` to exact frontend domain(s), never `*` in production
+- [ ] Set `ENABLE_SWAGGER=false` in production unless API docs must be public
+- [ ] Set `TRUST_PROXY` correctly for your hosting setup (usually `1` behind one proxy)
+- [ ] Confirm rate limiting works for `/api/auth/login`, `/api/auth/register`, and `/api/auth/refresh`
+- [ ] Confirm backend health endpoint `/health` remains available under load
 
-- [x] Login functionality
-- [x] Registration functionality  
-- [x] Logout functionality
-- [x] Token refresh mechanism
-- [x] Role-based access ready (User type includes clinicName)
-- [x] Protected routes implemented
-- [x] Token storage in sessionStorage (memory-like, cleared on tab close)
-- [x] Auto-refresh logic in interceptor
-- [x] 401 handling with redirect to login
-- [x] Session persistence via session restoration
+### Frontend auth/session baseline
+- [ ] Set `VITE_API_URL` to production backend URL
+- [ ] Confirm login persists across page refresh (`/auth/me` succeeds after reload)
+- [ ] Confirm expired access token triggers refresh and user remains logged in
+- [ ] Confirm invalid refresh token logs user out and redirects to `/login`
 
-## Core Features Integration ✅
+### Release gate (must pass)
+- [ ] Frontend production build passes (`npm run build`)
+- [ ] Backend tests pass in CI with a reachable test database
+- [ ] Manual smoke test: register, login, create patient, create note, logout
+- [ ] Error responses include `X-Request-Id` for traceability
 
-- [x] Voice transcription → backend processing (notes service)
-- [x] SOAP note generation endpoint
-- [x] Patient record fetching
-- [x] Dashboard analytics placeholder (needs real data)
-- [x] User profile (via /auth/me)
-- [x] Subscription plan check (needs backend endpoint)
+## Phase 2: Reliability & Observability
 
-For each feature:
-- [x] Loading states (React Query)
-- [x] Error states (ApiError handling)
-- [x] Empty states (needs UI refinement)
-- [x] Edge cases (timeouts: 10s, retry logic)
+### Monitoring
+- [ ] Add centralized error tracking (Sentry or equivalent) for frontend and backend
+- [ ] Add uptime checks on `/health`
+- [ ] Add structured dashboards for 5xx, latency, and 429 rate limit spikes
 
-## Error Handling System ✅
+### Data safety
+- [ ] Enable daily database backups and restore test drills
+- [ ] Add migration rollback strategy and migration runbook
+- [ ] Add environment-specific Prisma migration workflow (`migrate deploy` in prod)
 
-- [x] Global ErrorBoundary component
-- [x] Standardized backend error format handling
-- [x] HTTP status code mapping:
-  - [x] 400 → Validation error UI
-  - [x] 401 → Redirect to login
-  - [x] 403 → Permission denied (ready)
-  - [x] 500 → System error fallback UI
-- [x] User-friendly error messages
+### Release gate (must pass)
+- [ ] Alerting is configured and tested with a synthetic failure
+- [ ] Backup restore test completed successfully
+- [ ] P95 latency and error budgets defined
 
-## Type Safety & Validation ✅
+## Phase 3: Scale & Hardening
 
-- [x] TypeScript interfaces for all API responses
-- [x] Service response type definitions
-- [x] React Query hooks with proper typing
-- [x] Environment variable typing
+### Security hardening
+- [ ] Add refresh token rotation and server-side token revocation list
+- [ ] Add account lockout/step-up controls for repeated failed auth attempts
+- [ ] Add audit trail for security-sensitive actions (auth, note export, settings)
+- [ ] Add dependency and container vulnerability scanning in CI
 
-## Performance & Optimization ✅
+### Performance and scale
+- [ ] Add Redis for rate limit storage and hot-path caching
+- [ ] Add background queues for heavy AI/note generation tasks
+- [ ] Add CDN and static asset caching policy
+- [ ] Add DB indexing review from real production query metrics
 
-- [x] React Query for caching (5-10 min stale time)
-- [x] No duplicate API calls (caching strategy)
-- [x] Lazy loading routes (React Router)
-- [x] Memoization ready (React Query handles this)
-- [x] Optimistic UI updates ready (useMutation)
+### Release gate (must pass)
+- [ ] Load test at target concurrency with stable latency and low error rate
+- [ ] No critical/high vulnerabilities open in dependency scan
+- [ ] Incident response runbook tested with one game day
 
-## Security Hardening ✅
+## Non-negotiable loophole checks (every release)
 
-- [x] Tokens in sessionStorage (not localStorage)
-- [x] HTTPS ready (environment config)
-- [x] CORS handled (backend config)
-- [x] Input sanitization ready (Zod validation available)
-- [x] No raw HTML injection (React escapes by default)
-- [x] Secure headers (backend responsibility)
-- [x] Token refresh mechanism prevents expiration
+- [ ] No secrets in frontend bundle or git history
+- [ ] No wildcard CORS in production
+- [ ] No unauthenticated access to protected routes
+- [ ] No stack traces exposed to end users in production
+- [ ] No public debug endpoints enabled by accident
+- [ ] No deploy without DB backup verification
 
-## Environment & Deployment ✅
+## Current Status Snapshot (March 4, 2026)
 
-- [x] .env.development configuration
-- [x] .env.production configuration
-- [x] API base URL separation
-- [x] Staging environment support ready
-- [x] Build-time vs runtime config (Vite)
-- [x] No hardcoded URLs
+Implemented in code this session:
+- Backend: configurable trust proxy (`TRUST_PROXY`)
+- Backend: optional Swagger exposure (`ENABLE_SWAGGER`)
+- Backend: stricter CORS allowlist enforcement
+- Backend: improved 429 payload includes request metadata
+- Backend: stricter JWT verification in auth middleware
+- Frontend: API default base URL aligned to backend port 4000
+- Frontend: session restore now rehydrates API auth token before `/auth/me`
+- Frontend: auth register request typing corrected (`clinicName` required)
 
-## Testing Integration ✅
-
-- [x] Mock API layer (/src/services/mockApi.ts)
-- [x] Mock data for development
-- [x] Simulated network latency
-- [x] Test auth flow ready
-- [x] Test protected routes ready
-- [x] Test API failure scenarios
-- [x] Enable via VITE_ENABLE_MOCK_API=true
-
-## Known Integration Risks ⚠️
-
-1. **Backend endpoints**: Some features need backend implementation:
-   - Patient search endpoint (/patients/search)
-   - Dashboard analytics endpoints
-   - Subscription/plan checking
-   
-2. **PDF generation**: Notes PDF download needs backend endpoint verification
-
-3. **Real-time features**: WebSocket implementation not included yet
-
-4. **Monitoring**: Error tracking service (Sentry, etc.) not integrated
-
-5. **File uploads**: Voice transcription file upload not implemented
-
-## Final Readiness Score: 85/100
-
-### Completed: 85%
-- Core API integration: 100%
-- Authentication flow: 100% 
-- Error handling: 90%
-- Type safety: 85%
-- Performance: 85%
-- Security: 90%
-- Testing: 80%
-
-### Remaining Work: 15%
-- Dashboard real data integration
-- Subscription/plan features
-- Advanced error tracking
-- File upload for voice
-- WebSocket for real-time
-
-### Production Recommendations:
-1. Add error tracking (Sentry)
-2. Add analytics/monitoring  
-3. Implement voice file upload
-4. Add WebSocket for real-time features
-5. Complete subscription/billing integration
-6. Add comprehensive test suite
-7. Set up CI/CD pipeline
+Still required before real user launch:
+- Backend tests with live test database (currently failing locally due to DB unavailable)
+- CI/CD release gates and monitoring setup
