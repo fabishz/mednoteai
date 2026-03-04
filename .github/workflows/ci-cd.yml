@@ -1,0 +1,302 @@
+name: MedNoteAI CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment to deploy
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  pr-check:
+    name: PR checks (backend + frontend)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            directory: MedNoteAIBackend
+          - name: frontend
+            directory: "MedNoteAiFrontend "
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.directory }}
+
+      - name: Run lint
+        run: npm run lint --if-present
+        working-directory: ${{ matrix.directory }}
+
+      - name: Type check
+        working-directory: ${{ matrix.directory }}
+        run: |
+          if [ "${{ matrix.name }}" = "frontend" ]; then
+            npx tsc --noEmit
+          else
+            set -euo pipefail
+            find src tests -name '*.js' -print0 | xargs -0 -n1 node --check
+          fi
+
+      - name: Run tests
+        run: npm run test --if-present
+        working-directory: ${{ matrix.directory }}
+
+      - name: Build verification
+        run: npm run build --if-present
+        working-directory: ${{ matrix.directory }}
+
+  full-suite:
+    name: Main branch full suite
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            directory: MedNoteAIBackend
+          - name: frontend
+            directory: "MedNoteAiFrontend "
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.directory }}
+
+      - name: Run lint
+        run: npm run lint --if-present
+        working-directory: ${{ matrix.directory }}
+
+      - name: Type check
+        working-directory: ${{ matrix.directory }}
+        run: |
+          if [ "${{ matrix.name }}" = "frontend" ]; then
+            npx tsc --noEmit
+          else
+            set -euo pipefail
+            find src tests -name '*.js' -print0 | xargs -0 -n1 node --check
+          fi
+
+      - name: Run tests
+        run: npm run test
+        working-directory: ${{ matrix.directory }}
+
+      - name: Build verification
+        run: npm run build --if-present
+        working-directory: ${{ matrix.directory }}
+
+  deploy-staging:
+    name: Deploy staging
+    needs: full-suite
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      AWS_REGION: us-east-1
+      BACKEND_ECR_REPOSITORY: mednoteai-backend
+      BACKEND_CLUSTER_STAGING: mednoteai-backend-cluster-staging
+      BACKEND_SERVICE_STAGING: mednoteai-backend-service-staging
+      BACKEND_TASK_FAMILY_STAGING: mednoteai-backend-staging
+      FRONTEND_PATH: "MedNoteAiFrontend "
+      STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+      VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (staging)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.STAGING_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.STAGING_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry: ${{ secrets.STAGING_ECR_REGISTRY }}
+
+      - name: Build and push backend image (staging)
+        id: backend-build
+        uses: docker/build-push-action@v5
+        with:
+          context: MedNoteAIBackend
+          push: true
+          tags: ${{ secrets.STAGING_ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:staging-${{ github.sha }}
+
+      - name: Snapshot current ECS task definition (staging)
+        id: snapshot-staging
+        run: |
+          CURRENT=$(aws ecs describe-services --cluster ${{ env.BACKEND_CLUSTER_STAGING }} --services ${{ env.BACKEND_SERVICE_STAGING }} --query 'services[0].taskDefinition' --output text)
+          echo "PREVIOUS_TASK_DEF_STAGING=$CURRENT" >> $GITHUB_ENV
+
+      - name: Register updated task definition (staging)
+        id: register-staging
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.BACKEND_TASK_FAMILY_STAGING }} --region ${{ env.AWS_REGION }} > /tmp/ecs-task.json
+          jq --arg IMAGE "${{ steps.backend-build.outputs.image }}" ' .taskDefinition
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .registeredAt, .registeredBy, .compatibilities)
+            | (.containerDefinitions[] | select(.name == "backend")).image = $IMAGE
+            ' /tmp/ecs-task.json > /tmp/ecs-task-for-register.json
+          aws ecs register-task-definition --cli-input-json file:///tmp/ecs-task-for-register.json > /tmp/registered.json
+          echo "REGISTERED_TASK_DEF_STAGING=$(jq -r '.taskDefinition.taskDefinitionArn' /tmp/registered.json)" >> $GITHUB_ENV
+
+      - name: Deploy backend service (staging)
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.BACKEND_CLUSTER_STAGING }} \
+            --service ${{ env.BACKEND_SERVICE_STAGING }} \
+            --task-definition $REGISTERED_TASK_DEF_STAGING \
+            --force-new-deployment \
+            --deployment-configuration maximumPercent=200,minimumHealthyPercent=100
+
+      - name: Deploy frontend to Vercel (staging)
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ env.VERCEL_PROJECT_ID }}
+          working-directory: ${{ env.FRONTEND_PATH }}
+          vercel-args: '--prebuilt --confirm --env NEXT_PUBLIC_API_BASE_URL=${{ env.STAGING_API_URL }} --env VERCEL_ENV=preview'
+
+      - name: Validate staging API health
+        run: |
+          curl -fsSL "${{ env.STAGING_API_URL }}/health"
+
+  smoke-test-staging:
+    name: Smoke tests (staging)
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for staging readiness
+        run: sleep 5
+
+      - name: Hit staging API
+        run: |
+          curl -f "${{ secrets.STAGING_API_URL }}/health"
+          curl -f "https://${{ secrets.STAGING_FRONTEND_URL }}"
+
+  production-deploy:
+    name: Production deployment
+    needs: smoke-test-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_REGION: us-east-1
+      BACKEND_ECR_REPOSITORY: mednoteai-backend
+      BACKEND_CLUSTER_PRODUCTION: mednoteai-backend-cluster-prod
+      BACKEND_SERVICE_PRODUCTION: mednoteai-backend-service-prod
+      BACKEND_TASK_FAMILY_PRODUCTION: mednoteai-backend-prod
+      FRONTEND_PATH: "MedNoteAiFrontend "
+      PROD_API_URL: ${{ secrets.PROD_API_URL }}
+      VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (production)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Capture current backend task definition
+        id: snapshot-prod
+        run: |
+          CURRENT=$(aws ecs describe-services --cluster ${{ env.BACKEND_CLUSTER_PRODUCTION }} --services ${{ env.BACKEND_SERVICE_PRODUCTION }} --query 'services[0].taskDefinition' --output text)
+          echo "PREVIOUS_TASK_DEF=$CURRENT" >> $GITHUB_ENV
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry: ${{ secrets.PROD_ECR_REGISTRY }}
+
+      - name: Build and push backend image (production)
+        id: backend-build-prod
+        uses: docker/build-push-action@v5
+        with:
+          context: MedNoteAIBackend
+          push: true
+          tags: ${{ secrets.PROD_ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPOSITORY }}:prod-${{ github.sha }}
+
+      - name: Register updated task definition (production)
+        id: register-prod
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.BACKEND_TASK_FAMILY_PRODUCTION }} --region ${{ env.AWS_REGION }} > /tmp/ecs-task.json
+          jq --arg IMAGE "${{ steps.backend-build-prod.outputs.image }}" ' .taskDefinition
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .registeredAt, .registeredBy, .compatibilities)
+            | (.containerDefinitions[] | select(.name == "backend")).image = $IMAGE
+            ' /tmp/ecs-task.json > /tmp/ecs-task-for-register.json
+          aws ecs register-task-definition --cli-input-json file:///tmp/ecs-task-for-register.json > /tmp/registered.json
+          echo "REGISTERED_TASK_DEF=$(jq -r '.taskDefinition.taskDefinitionArn' /tmp/registered.json)" >> $GITHUB_ENV
+
+      - name: Deploy backend service (production)
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.BACKEND_CLUSTER_PRODUCTION }} \
+            --service ${{ env.BACKEND_SERVICE_PRODUCTION }} \
+            --task-definition $REGISTERED_TASK_DEF \
+            --force-new-deployment \
+            --deployment-configuration maximumPercent=200,minimumHealthyPercent=100
+
+      - name: Deploy frontend to Vercel (production)
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ env.VERCEL_PROJECT_ID }}
+          working-directory: ${{ env.FRONTEND_PATH }}
+          vercel-args: '--prebuilt --confirm --prod --env NEXT_PUBLIC_API_BASE_URL=${{ env.PROD_API_URL }}'
+
+      - name: Health check (production)
+        id: health-check
+        continue-on-error: true
+        run: |
+          curl -fsSL "${{ env.PROD_API_URL }}/health"
+
+      - name: Guard rails + rollback
+        if: always()
+        run: |
+          if [ "${{ steps.health-check.outcome }}" != "success" ]; then
+            echo "Production health check failed, rolling back ECS task definition."
+            aws ecs update-service \
+              --cluster ${{ env.BACKEND_CLUSTER_PRODUCTION }} \
+              --service ${{ env.BACKEND_SERVICE_PRODUCTION }} \
+              --task-definition $PREVIOUS_TASK_DEF \
+              --force-new-deployment
+            exit 1
+          fi
+

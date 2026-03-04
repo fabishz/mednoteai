@@ -1,0 +1,15 @@
+environment          = "production"
+backend_image        = "123456789012.dkr.ecr.us-east-1.amazonaws.com/mednoteai-backend:prod-<SHA>"
+frontend_domain      = "app.mednoteai.com"
+cidr_vpc             = "10.140.0.0/16"
+allowed_ip_blocks    = ["203.0.113.0/24"]
+db_username          = "mednoteadmin"
+db_password          = "PROD_DB_PASSWORD"
+certificate_arn      = "arn:aws:acm:us-east-1:123456789012:certificate/<PROD_CERT>"
+secret_values = {
+  JWT_SECRET        = "PROD_JWT_SECRET"
+  SENTRY_DSN        = "https://<prod>@o0.ingest.sentry.io/0"
+  STRIPE_SECRET_KEY = "sk_live_..."
+  HIPAA_AUDIT_TOKEN = "PROD_AUDIT_TOKEN"
+}
+ecs_desired_count    = 3
