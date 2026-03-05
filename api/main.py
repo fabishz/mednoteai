@@ -7,7 +7,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routes import datasets, insights, reports
+from api.routes import datasets, insights, reports, system
+from scheduler.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,4 +53,16 @@ async def health() -> dict[str, str]:
 app.include_router(datasets.router)
 app.include_router(reports.router)
 app.include_router(insights.router)
+app.include_router(system.router)
 
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    start_scheduler()
+    LOGGER.info("Background scheduler started")
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    stop_scheduler()
+    LOGGER.info("Background scheduler stopped")

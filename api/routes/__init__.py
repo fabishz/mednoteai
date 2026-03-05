@@ -1,4 +1,3 @@
-from api.routes import datasets, insights, reports
+from api.routes import datasets, insights, reports, system
 
-__all__ = ["datasets", "insights", "reports"]
-
+__all__ = ["datasets", "insights", "reports", "system"]

@@ -49,3 +49,6 @@ coverage/
 
 # Misc
 *.log
+
+# Logs
+logs/
