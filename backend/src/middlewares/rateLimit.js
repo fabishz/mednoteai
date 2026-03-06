@@ -23,8 +23,8 @@ const createLimiter = (windowMs, max, message, code) => rateLimit({
 });
 
 export const generalLimiter = createLimiter(
-  env.rateLimitWindowMs,
-  env.rateLimitMax,
+  60 * 1000,
+  100,
   'Too many requests, please try again later',
   'TOO_MANY_REQUESTS'
 );

@@ -22,7 +22,8 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
   SENTRY_DSN: z.string().url().optional(),
   JWT_SECRET: z.string().min(16),
-  JWT_EXPIRES_IN: z.string().default('24h'),
+  JWT_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   AI_API_URL: z.string().url(),
   AI_API_KEY: z.string().min(1),
   AI_MODEL: z.string().min(1),
@@ -32,8 +33,12 @@ const envSchema = z.object({
     z.number().int().min(0).default(1)
   ),
   ENABLE_SWAGGER: z.preprocess((val) => parseBoolean(val, true), z.boolean().default(true)),
+  ENFORCE_HTTPS: z.preprocess(
+    (val) => (val === undefined || val === null || val === '' ? undefined : parseBoolean(val)),
+    z.boolean().optional()
+  ),
   RATE_LIMIT_WINDOW_MS: z.preprocess((val) => Number(val), z.number().default(60000)),
-  RATE_LIMIT_MAX: z.preprocess((val) => Number(val), z.number().default(30)),
+  RATE_LIMIT_MAX: z.preprocess((val) => Number(val), z.number().default(100)),
   HEALTHCHECK_TIMEOUT_MS: z.preprocess(
     (val) => (val === undefined || val === null || val === '' ? 40 : Number(val)),
     z.number().int().positive().max(5000).default(40)
@@ -80,12 +85,14 @@ export const env = {
   sentryDsn: parsed.data.SENTRY_DSN,
   jwtSecret: parsed.data.JWT_SECRET,
   jwtExpiresIn: parsed.data.JWT_EXPIRES_IN,
+  jwtRefreshExpiresIn: parsed.data.JWT_REFRESH_EXPIRES_IN,
   aiApiUrl: parsed.data.AI_API_URL,
   aiApiKey: parsed.data.AI_API_KEY,
   aiModel: parsed.data.AI_MODEL,
   corsOrigin: parsed.data.CORS_ORIGIN,
   trustProxy: parsed.data.TRUST_PROXY,
   enableSwagger: parsed.data.ENABLE_SWAGGER,
+  enforceHttps: parsed.data.ENFORCE_HTTPS ?? parsed.data.NODE_ENV === 'production',
   rateLimitWindowMs: parsed.data.RATE_LIMIT_WINDOW_MS,
   rateLimitMax: parsed.data.RATE_LIMIT_MAX,
   healthcheckTimeoutMs: parsed.data.HEALTHCHECK_TIMEOUT_MS,

@@ -8,6 +8,23 @@ import { AuditService } from './audit.service.js';
 import { PlanGatingService } from './plan-gating.service.js';
 import { PlanFeature } from '../constants/subscriptionPlans.js';
 
+function parseExpirySeconds(expiresIn, fallbackSeconds) {
+    const match = typeof expiresIn === 'string'
+        ? expiresIn.trim().match(/^(\d+)([smhd])$/i)
+        : null;
+    if (!match) {
+        return fallbackSeconds;
+    }
+
+    const value = Number(match[1]);
+    const unit = match[2].toLowerCase();
+    if (unit === 's') return value;
+    if (unit === 'm') return value * 60;
+    if (unit === 'h') return value * 60 * 60;
+    if (unit === 'd') return value * 24 * 60 * 60;
+    return fallbackSeconds;
+}
+
 export class AuthService {
     static async register({ name, email, password, clinicName }) {
         const existing = await prisma.user.findUnique({ where: { email } });
@@ -48,7 +65,7 @@ export class AuthService {
         return {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
-            expiresIn: 3600, // 1 hour in seconds
+            expiresIn: parseExpirySeconds(env.jwtExpiresIn, 900),
             user: {
                 id: user.id,
                 name: user.name,
@@ -98,7 +115,7 @@ export class AuthService {
         return {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
-            expiresIn: 3600, // 1 hour in seconds
+            expiresIn: parseExpirySeconds(env.jwtExpiresIn, 900),
             user: {
                 id: user.id,
                 name: user.name,
@@ -116,13 +133,13 @@ export class AuthService {
         const accessToken = jwt.sign(
             { sub: user.id, email: user.email, role, clinicId: user.clinicId, type: 'access' },
             env.jwtSecret,
-            { expiresIn: '1h', algorithm: 'HS256' }
+            { expiresIn: env.jwtExpiresIn, algorithm: 'HS256' }
         );
 
         const refreshToken = jwt.sign(
             { sub: user.id, email: user.email, role, clinicId: user.clinicId, type: 'refresh' },
             env.jwtSecret,
-            { expiresIn: '7d', algorithm: 'HS256' }
+            { expiresIn: env.jwtRefreshExpiresIn, algorithm: 'HS256' }
         );
 
         return { accessToken, refreshToken };
@@ -149,12 +166,12 @@ export class AuthService {
             const newAccessToken = jwt.sign(
                 { sub: user.id, email: user.email, role: normalizeRole(user.role), clinicId: user.clinicId, type: 'access' },
                 env.jwtSecret,
-                { expiresIn: '1h', algorithm: 'HS256' }
+                { expiresIn: env.jwtExpiresIn, algorithm: 'HS256' }
             );
 
             return {
                 accessToken: newAccessToken,
-                expiresIn: 3600 // 1 hour in seconds
+                expiresIn: parseExpirySeconds(env.jwtExpiresIn, 900)
             };
         } catch (err) {
             if (err.name === 'TokenExpiredError') {

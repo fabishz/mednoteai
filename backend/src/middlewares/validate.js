@@ -3,7 +3,8 @@ export const validate = (schema) => (req, res, next) => {
     const validated = schema.parse({
       body: req.body,
       query: req.query,
-      params: req.params
+      params: req.params,
+      headers: req.headers
     });
     req.validated = validated;
     next();

@@ -2,10 +2,17 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { ROLE_VALUES, Roles, normalizeRole } from '../constants/roles.js';
 import { setRequestContextMetadata, setRequestContextUser } from './requestContext.js';
+import { getAccessTokenFromCookies } from '../utils/authCookies.js';
 
 export function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  const headerToken = header && header.startsWith('Bearer ')
+    ? header.split(' ')[1]
+    : null;
+  const cookieToken = getAccessTokenFromCookies(req);
+  const token = headerToken || cookieToken;
+
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: 'Authentication required',
@@ -13,8 +20,6 @@ export function authMiddleware(req, res, next) {
       meta: { requestId: req.requestId }
     });
   }
-
-  const token = header.split(' ')[1];
   try {
     const payload = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] });
     if (!payload?.sub || !payload?.email || !payload?.role) {

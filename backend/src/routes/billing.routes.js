@@ -16,6 +16,10 @@ router.post(
   billingController.createCheckoutSession
 );
 
-router.post('/webhook', billingController.webhook);
+router.post(
+  '/webhook',
+  validate(billingValidator.stripeWebhookSchema),
+  billingController.webhook
+);
 
 export default router;

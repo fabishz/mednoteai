@@ -7,3 +7,9 @@ export const createCheckoutSessionSchema = z.object({
     cancelUrl: z.string().url().optional()
   })
 });
+
+export const stripeWebhookSchema = z.object({
+  headers: z.object({
+    'stripe-signature': z.string().min(1, 'Missing Stripe signature')
+  })
+});

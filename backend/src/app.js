@@ -11,6 +11,8 @@ import { authMiddleware } from './middlewares/auth.js';
 import { generalLimiter } from './middlewares/rateLimit.js';
 import { attachResponseMeta, requestContext } from './middlewares/requestContext.js';
 import { requestMetadata } from './middlewares/requestMetadata.js';
+import { enforceHttps } from './middlewares/enforceHttps.js';
+import { sanitizeInput } from './middlewares/sanitizeInput.js';
 import authRoutes from './routes/auth.routes.js';
 import patientRoutes from './routes/patient.routes.js';
 import noteRoutes from './routes/note.routes.js';
@@ -36,6 +38,7 @@ app.use(requestContext);
 app.use(requestMetadata);
 app.use(attachResponseMeta);
 app.use(httpLogger);
+app.use(enforceHttps);
 app.use(
   helmet({
     // Allow Swagger UI inline scripts/styles
@@ -59,6 +62,7 @@ app.use(cors({
 app.use(generalLimiter);
 app.use(['/api/billing/webhook', '/billing/webhook'], express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '1mb' }));
+app.use(sanitizeInput);
 
 app.use('/health', healthRoutes);
 
