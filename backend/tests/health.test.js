@@ -1,6 +1,4 @@
 import { jest } from '@jest/globals';
-import express from 'express';
-import request from 'supertest';
 
 const prismaMock = {
   $queryRaw: jest.fn(),
@@ -25,25 +23,40 @@ jest.unstable_mockModule('../src/config/redis.js', () => ({
 const { default: healthRoutes } = await import('../src/routes/health.routes.js');
 
 describe('health endpoint', () => {
-  let app;
+  const createResponse = () => {
+    const res = {};
+    res.statusCode = 200;
+    res.body = null;
+    res.status = jest.fn((code) => {
+      res.statusCode = code;
+      return res;
+    });
+    res.json = jest.fn((payload) => {
+      res.body = payload;
+      return res;
+    });
+    return res;
+  };
+
+  const healthHandler = healthRoutes.stack
+    .find((layer) => layer.route?.path === '/' && layer.route.methods.get)
+    .route.stack[0].handle;
 
   beforeEach(() => {
     prismaMock.$queryRaw.mockReset();
     redisMock.ping.mockReset();
     ensureRedisConnectedMock.mockReset();
-
-    app = express();
-    app.use('/health', healthRoutes);
   });
 
   it('returns ok when database and redis are connected', async () => {
     prismaMock.$queryRaw.mockResolvedValue([{ ok: 1 }]);
     ensureRedisConnectedMock.mockResolvedValue(undefined);
     redisMock.ping.mockResolvedValue('PONG');
+    const res = createResponse();
 
-    const res = await request(app).get('/health');
+    await healthHandler({}, res);
 
-    expect(res.status).toBe(200);
+    expect(res.statusCode).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(typeof res.body.uptime).toBe('number');
     expect(res.body.timestamp).toEqual(expect.any(String));
@@ -58,10 +71,11 @@ describe('health endpoint', () => {
     prismaMock.$queryRaw.mockResolvedValue([{ ok: 1 }]);
     ensureRedisConnectedMock.mockResolvedValue(undefined);
     redisMock.ping.mockRejectedValue(new Error('redis down'));
+    const res = createResponse();
 
-    const res = await request(app).get('/health');
+    await healthHandler({}, res);
 
-    expect(res.status).toBe(503);
+    expect(res.statusCode).toBe(503);
     expect(res.body.status).toBe('degraded');
     expect(res.body.services).toEqual({
       database: 'connected',

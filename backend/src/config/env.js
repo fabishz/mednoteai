@@ -32,7 +32,10 @@ const envSchema = z.object({
   ENABLE_SWAGGER: z.preprocess((val) => parseBoolean(val, true), z.boolean().default(true)),
   RATE_LIMIT_WINDOW_MS: z.preprocess((val) => Number(val), z.number().default(60000)),
   RATE_LIMIT_MAX: z.preprocess((val) => Number(val), z.number().default(30)),
-  HEALTHCHECK_TIMEOUT_MS: z.preprocess((val) => Number(val), z.number().int().positive().max(5000).default(40)),
+  HEALTHCHECK_TIMEOUT_MS: z.preprocess(
+    (val) => (val === undefined || val === null || val === '' ? 40 : Number(val)),
+    z.number().int().positive().max(5000).default(40)
+  ),
   AWS_REGION: z.string().min(1),
   S3_VOICE_BUCKET: z.string().min(1)
 });
