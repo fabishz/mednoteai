@@ -1,14 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
-import { authService } from "@/services/auth";
+import { authService, type User } from "@/services/auth";
 import { apiClient, ApiError } from "@/services/api/client";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  clinicName: string;
-  role: 'ADMIN' | 'DOCTOR' | 'STAFF';
-}
 
 interface AuthContextType {
   user: User | null;

@@ -13,8 +13,8 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [org, setOrg] = useState(user?.organization || "");
-  const [currentPlan] = useState<"basic" | "pro" | "enterprise">("pro");
+  const [org, setOrg] = useState(user?.clinicName || "");
+  const currentPlan = user?.subscription?.plan || "PROFESSIONAL";
 
   const handleSaveProfile = () => {
     toast({ title: "Profile updated", description: "Your profile information has been saved." });
@@ -52,9 +52,9 @@ export default function SettingsPage() {
       <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-xl p-6 space-y-5">
         <h2 className="text-lg font-semibold text-foreground">Subscription</h2>
         <div className="flex flex-wrap gap-3">
-          {(["basic", "pro", "enterprise"] as const).map((plan) => (
+          {(["STARTER", "PROFESSIONAL", "CLINIC"] as const).map((plan) => (
             <div key={plan} className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${currentPlan === plan ? "border-primary bg-primary/5" : "border-border"}`}>
-              <span className="text-sm font-medium text-foreground capitalize">{plan}</span>
+              <span className="text-sm font-medium text-foreground capitalize">{plan.toLowerCase()}</span>
               {currentPlan === plan && <Badge variant="default" className="text-xs">Current</Badge>}
             </div>
           ))}

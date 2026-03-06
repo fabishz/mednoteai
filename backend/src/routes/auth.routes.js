@@ -6,6 +6,8 @@ import { authLimiter } from '../middlewares/rateLimit.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { authorize } from '../middlewares/authorize.js';
 import { Permissions } from '../constants/permissions.js';
+import { requirePlan } from '../middlewares/requirePlan.js';
+import { PlanFeature } from '../constants/subscriptionPlans.js';
 
 const router = Router();
 
@@ -217,6 +219,7 @@ router.post(
   '/users',
   authMiddleware,
   authorize(Permissions.USER_INVITE),
+  requirePlan(PlanFeature.DOCTOR_LIMIT),
   validate(authValidator.createUserByAdminSchema),
   authController.createUser
 );

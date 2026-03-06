@@ -3,6 +3,7 @@ import { mockNotesOverTime, mockNoteTypes } from "@/lib/mockData";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const COLORS = [
   "hsl(210, 76%, 55%)",
@@ -21,6 +22,22 @@ const monthlyBreakdown = [
 ];
 
 export default function Reports() {
+  const { user } = useAuth();
+  const hasAdvancedReports = Boolean(user?.subscription?.features?.advanced_reports);
+
+  if (!hasAdvancedReports) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-foreground">Reports</h1>
+        <div className="bg-card border border-border rounded-xl p-6">
+          <p className="text-sm text-muted-foreground">
+            Advanced reports are available on Professional and Clinic plans. Upgrade your subscription to unlock this feature.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -28,7 +45,7 @@ export default function Reports() {
           <h1 className="text-2xl font-bold text-foreground">Reports</h1>
           <p className="text-sm text-muted-foreground mt-1">Analytics overview of your clinical documentation</p>
         </div>
-        <Button variant="outline" className="font-medium">
+        <Button variant="outline" className="font-medium" disabled={!hasAdvancedReports}>
           <Download className="w-4 h-4 mr-2" /> Export Report
         </Button>
       </div>

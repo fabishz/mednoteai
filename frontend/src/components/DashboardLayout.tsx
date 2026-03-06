@@ -14,7 +14,7 @@ const navItems = [
   { label: "Patients", path: "/dashboard/patients", icon: Users },
   { label: "Notes", path: "/dashboard/notes", icon: FileText },
   { label: "Templates", path: "/dashboard/templates", icon: ClipboardList },
-  { label: "Reports", path: "/dashboard/reports", icon: BarChart3 },
+  { label: "Reports", path: "/dashboard/reports", icon: BarChart3, feature: "advanced_reports" as const },
   { label: "Settings", path: "/dashboard/settings", icon: Settings },
 ];
 
@@ -64,21 +64,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const active = location.pathname === item.path || (item.path !== "/dashboard" && location.pathname.startsWith(item.path));
+            const isFeatureRestricted = item.feature === "advanced_reports"
+              ? !user?.subscription?.features?.advanced_reports
+              : false;
             return (
               <NavLink
                 key={item.path}
-                to={item.path}
+                to={isFeatureRestricted ? "#" : item.path}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  isFeatureRestricted && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground",
                   collapsed && "justify-center px-2"
                 )}
+                title={isFeatureRestricted ? "Upgrade to Professional or Clinic to access reports" : item.label}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{item.label}{isFeatureRestricted ? " (Locked)" : ""}</span>}
               </NavLink>
             );
           })}
@@ -106,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Menu className="w-5 h-5" />
             </button>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-foreground">{user?.organization || "Clinic"}</p>
+              <p className="text-sm font-semibold text-foreground">{user?.clinicName || "Clinic"}</p>
               <p className="text-xs text-muted-foreground">{user?.role}</p>
             </div>
           </div>

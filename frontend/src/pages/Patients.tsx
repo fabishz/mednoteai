@@ -9,18 +9,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Users, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PatientSearch from "@/components/PatientSearch";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Patient {
   id: string; name: string; age: number; gender: string; contact: string; medicalId: string; lastVisit: string;
 }
 
 export default function Patients() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ name: "", age: "", gender: "Male", contact: "", medicalId: "" });
+
+  const canAddPatient = Boolean(user?.subscription?.features?.canAddPatient ?? true);
+  const maxPatients = user?.subscription?.limits?.maxPatients ?? null;
 
   const filtered = patients.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.medicalId.toLowerCase().includes(search.toLowerCase());
@@ -29,6 +34,17 @@ export default function Patients() {
   });
 
   const handleAdd = () => {
+    if (!canAddPatient) {
+      toast({
+        title: "Patient limit reached",
+        description: maxPatients
+          ? `Your current plan allows up to ${maxPatients} patients.`
+          : "Your current plan does not allow adding more patients.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!form.name || !form.age || !form.contact) return;
     const newPatient: Patient = {
       id: `P${String(patients.length + 1).padStart(3, "0")}`,
@@ -52,10 +68,18 @@ export default function Patients() {
           <h1 className="text-2xl font-bold text-foreground">Patients</h1>
           <p className="text-sm text-muted-foreground mt-1">{patients.length} patients in your records</p>
         </div>
-        <Button onClick={() => setModalOpen(true)} className="font-semibold">
+        <Button onClick={() => setModalOpen(true)} className="font-semibold" disabled={!canAddPatient}>
           <Plus className="w-4 h-4 mr-2" /> Add Patient
         </Button>
       </div>
+
+      {!canAddPatient && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-sm text-muted-foreground">
+            You have reached your patient limit{maxPatients ? ` (${maxPatients})` : ""}. Upgrade your subscription to add more patients.
+          </p>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">

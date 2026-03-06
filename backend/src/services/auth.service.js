@@ -5,6 +5,8 @@ import { AuditAction, AuditEntityType } from '../constants/audit.js';
 import { env } from '../config/env.js';
 import { Roles, LegacyRoles, ASSIGNABLE_ROLE_VALUES, normalizeRole, toStoredRole } from '../constants/roles.js';
 import { AuditService } from './audit.service.js';
+import { PlanGatingService } from './plan-gating.service.js';
+import { PlanFeature } from '../constants/subscriptionPlans.js';
 
 export class AuthService {
     static async register({ name, email, password, clinicName }) {
@@ -21,11 +23,27 @@ export class AuthService {
             update: {},
             create: { name: clinicName }
         });
+
+        const planContext = await PlanGatingService.getClinicPlanContext(clinic.id);
+        const planDecision = PlanGatingService.evaluateFeatureGate(
+            PlanFeature.DOCTOR_LIMIT,
+            planContext,
+            { body: { role } }
+        );
+        if (!planDecision.allowed) {
+            throw Object.assign(new Error(planDecision.message), {
+                status: 403,
+                code: 'PLAN_FEATURE_RESTRICTED'
+            });
+        }
+
         const user = await prisma.user.create({
             data: { name, email, password: hashed, clinicName, role, clinicId: clinic.id }
         });
 
         const tokens = this.generateTokens(user);
+
+        const subscription = await PlanGatingService.getClinicPlanContext(user.clinicId);
 
         return {
             accessToken: tokens.accessToken,
@@ -37,7 +55,8 @@ export class AuthService {
                 email: user.email,
                 clinicId: user.clinicId,
                 clinicName: user.clinicName,
-                role: normalizeRole(user.role)
+                role: normalizeRole(user.role),
+                subscription
             }
         };
     }
@@ -74,6 +93,8 @@ export class AuthService {
             metadata: { email: AuditService.safeEmail(email) }
         });
 
+        const subscription = await PlanGatingService.getClinicPlanContext(user.clinicId);
+
         return {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
@@ -84,7 +105,8 @@ export class AuthService {
                 email: user.email,
                 clinicId: user.clinicId,
                 clinicName: user.clinicName,
-                role: normalizeRole(user.role)
+                role: normalizeRole(user.role),
+                subscription
             }
         };
     }
@@ -160,9 +182,12 @@ export class AuthService {
             throw Object.assign(new Error('User not found'), { status: 404, code: 'USER_NOT_FOUND' });
         }
 
+        const planContext = await PlanGatingService.getClinicPlanContext(user.clinicId);
+
         return {
             ...user,
-            role: normalizeRole(user.role)
+            role: normalizeRole(user.role),
+            subscription: planContext
         };
     }
 

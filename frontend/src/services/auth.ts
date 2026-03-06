@@ -6,13 +6,16 @@
  */
 
 import { apiClient, ApiError } from './api/client';
+import type { SubscriptionContext } from '@/types/subscription';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   clinicName: string;
-  role: 'ADMIN' | 'DOCTOR' | 'STAFF';
+  clinicId?: string;
+  role: 'ADMIN' | 'CLINIC_ADMIN' | 'SUPER_ADMIN' | 'DOCTOR' | 'NURSE' | 'STAFF';
+  subscription?: SubscriptionContext;
 }
 
 export interface AuthResponse {

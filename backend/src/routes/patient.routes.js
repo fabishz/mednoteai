@@ -4,6 +4,8 @@ import { validate } from '../middlewares/validate.js';
 import * as patientValidator from '../validators/patient.validator.js';
 import { authorize } from '../middlewares/authorize.js';
 import { Permissions } from '../constants/permissions.js';
+import { requirePlan } from '../middlewares/requirePlan.js';
+import { PlanFeature } from '../constants/subscriptionPlans.js';
 
 const router = Router();
 
@@ -45,6 +47,7 @@ const router = Router();
 router.post(
   '/',
   authorize(Permissions.PATIENT_CREATE),
+  requirePlan(PlanFeature.PATIENT_LIMIT),
   validate(patientValidator.createPatientSchema),
   patientController.create
 );
