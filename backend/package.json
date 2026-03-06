@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "loadtest:k6": "k6 run loadtest/mednote-loadtest.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
