@@ -3,6 +3,10 @@ import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { prisma } from './config/prisma.js';
 import { redis } from './config/redis.js';
+import { initSentry, registerSentryProcessHandlers } from './lib/sentry.js';
+
+initSentry();
+registerSentryProcessHandlers();
 
 const server = app.listen(env.port, () => {
   logger.info({ port: env.port, env: env.nodeEnv }, 'server_started');

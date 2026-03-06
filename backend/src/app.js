@@ -17,6 +17,7 @@ import noteRoutes from './routes/note.routes.js';
 import auditLogRoutes from './routes/audit-log.routes.js';
 import voiceNoteRoutes from './routes/voice-note.routes.js';
 import healthRoutes from './routes/health.routes.js';
+import { sentryErrorMiddleware } from './lib/sentry.js';
 
 export const app = express();
 
@@ -78,5 +79,6 @@ app.use('/api/voice-notes', authMiddleware, voiceNoteRoutes);
 app.use('/api/audit-logs', authMiddleware, auditLogRoutes);
 
 app.use(notFound);
+app.use(sentryErrorMiddleware);
 app.use(errorLoggingMiddleware);
 app.use(errorHandler);
