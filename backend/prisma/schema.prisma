@@ -21,6 +21,7 @@ enum AuditAction {
   PATIENT_CREATED
   PATIENT_UPDATED
   PATIENT_DELETED
+  PATIENT_ANONYMIZED
   PATIENT_EXPORT
   NOTE_CREATED
   NOTE_UPDATED
@@ -47,6 +48,14 @@ model Clinic {
   voiceNotes   VoiceNote[]
   reports      Report[]
   templates    Template[]
+  subscription Subscription?
+  retentionPolicy RetentionPolicy?
+}
+
+enum SubscriptionPlan {
+  STARTER
+  PROFESSIONAL
+  CLINIC
 }
 
 model User {
@@ -79,6 +88,7 @@ model Patient {
   clinicId   String
   createdAt  DateTime      @default(now())
   deletedAt  DateTime?
+  anonymizedAt DateTime?
   doctor     User          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   clinic     Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   notes      MedicalNote[]
@@ -90,6 +100,7 @@ model Patient {
   @@index([clinicId])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([anonymizedAt])
 }
 
 model MedicalNote {
@@ -185,4 +196,31 @@ model Template {
   @@unique([clinicId, id])
   @@index([clinicId])
   @@index([createdAt])
+}
+
+model RetentionPolicy {
+  id                          String   @id @default(uuid())
+  clinicId                    String   @unique
+  patientRecordRetentionYears Int      @default(7)
+  auditLogRetentionYears      Int      @default(7)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  clinic                      Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, id])
+  @@index([createdAt])
+}
+
+model Subscription {
+  id                   String           @id @default(uuid())
+  clinicId             String           @unique
+  stripeCustomerId     String           @unique
+  stripeSubscriptionId String?          @unique
+  plan                 SubscriptionPlan
+  status               String
+  currentPeriodEnd     DateTime?
+  clinic               Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, id])
+  @@index([stripeSubscriptionId])
 }
