@@ -29,12 +29,12 @@ export interface GenerateNoteRequest {
 }
 
 export interface PaginatedNotes {
-  notes: Note[];
+  data: Note[];
   pagination: {
     page: number;
     limit: number;
     total: number;
-    totalPages: number;
+    pages: number;
   };
 }
 
@@ -57,7 +57,7 @@ export class NotesService {
   /**
    * Get paginated list of notes
    */
-  async getNotes(page: number = 1, limit: number = 10, patientId?: string): Promise<PaginatedNotes> {
+  async getNotes(page: number = 1, limit: number = 20, patientId?: string): Promise<PaginatedNotes> {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -69,7 +69,7 @@ export class NotesService {
       }
 
       const response = await apiClient.get<any>(`/notes?${params.toString()}`);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message || 'Failed to fetch notes');

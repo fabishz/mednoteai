@@ -21,7 +21,7 @@ export const patientKeys = {
 /**
  * Hook to get paginated list of patients
  */
-export function usePatients(page: number = 1, limit: number = 10) {
+export function usePatients(page: number = 1, limit: number = 20) {
   return useQuery({
     queryKey: patientKeys.list({ page, limit }),
     queryFn: () => patientsService.getPatients(page, limit),

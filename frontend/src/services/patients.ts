@@ -53,12 +53,12 @@ export interface CreatePatientRequest {
 }
 
 export interface PaginatedPatients {
-  patients: Patient[];
+  data: Patient[];
   pagination: {
     page: number;
     limit: number;
     total: number;
-    totalPages: number;
+    pages: number;
   };
 }
 
@@ -81,7 +81,7 @@ export class PatientsService {
   /**
    * Get paginated list of patients
    */
-  async getPatients(page: number = 1, limit: number = 10): Promise<PaginatedPatients> {
+  async getPatients(page: number = 1, limit: number = 20): Promise<PaginatedPatients> {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -89,7 +89,7 @@ export class PatientsService {
       });
 
       const response = await apiClient.get<any>(`/patients?${params.toString()}`);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message || 'Failed to fetch patients');

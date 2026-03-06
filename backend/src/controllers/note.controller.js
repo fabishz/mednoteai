@@ -13,11 +13,8 @@ export const generate = asyncHandler(async (req, res) => {
 });
 
 export const list = asyncHandler(async (req, res) => {
-    const data = await NoteService.list(req.user.id, req.validated.query);
-    res.json({
-        success: true,
-        data
-    });
+    const result = await NoteService.list(req.user.id, req.validated.query);
+    res.json(result);
 });
 
 export const getById = asyncHandler(async (req, res) => {

@@ -20,7 +20,7 @@ export const noteKeys = {
 /**
  * Hook to get paginated list of notes
  */
-export function useNotes(page: number = 1, limit: number = 10, patientId?: string) {
+export function useNotes(page: number = 1, limit: number = 20, patientId?: string) {
   return useQuery({
     queryKey: noteKeys.list({ page, limit, patientId }),
     queryFn: () => notesService.getNotes(page, limit, patientId),

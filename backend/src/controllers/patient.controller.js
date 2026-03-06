@@ -11,11 +11,8 @@ export const create = asyncHandler(async (req, res) => {
 });
 
 export const list = asyncHandler(async (req, res) => {
-    const data = await PatientService.list(req.user.id, req.validated.query);
-    res.json({
-        success: true,
-        data
-    });
+    const result = await PatientService.list(req.user.id, req.validated.query);
+    res.json(result);
 });
 
 export const getById = asyncHandler(async (req, res) => {

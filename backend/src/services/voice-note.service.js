@@ -3,8 +3,32 @@ import { AuditAction, AuditEntityType } from '../constants/audit.js';
 import { AuditService } from './audit.service.js';
 import { assertValidVoiceUpload } from '../utils/voiceFileValidation.js';
 import { assertSafeVoiceObjectKey, sanitizePatientId } from '../utils/voiceKeySecurity.js';
+import { buildPaginatedResult, getPaginationParams } from '../utils/pagination.js';
 
 export class VoiceNoteService {
+  static async listEncounters({ page = 1, limit = 20 }) {
+    const paginationParams = getPaginationParams({ page, limit });
+
+    const [total, encounters] = await Promise.all([
+      prisma.voiceNote.count(),
+      prisma.voiceNote.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: paginationParams.skip,
+        take: paginationParams.limit,
+        include: {
+          patient: { select: { id: true, fullName: true } },
+          createdByUser: { select: { id: true, name: true } }
+        }
+      })
+    ]);
+
+    return buildPaginatedResult(encounters, {
+      page: paginationParams.page,
+      limit: paginationParams.limit,
+      total
+    });
+  }
+
   static async createVoiceNote({
     actorUser,
     patientId,

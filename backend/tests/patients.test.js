@@ -25,8 +25,14 @@ describe('patients', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(list.status).toBe(200);
-    expect(list.body.success).toBe(true);
-    expect(list.body.data.patients.length).toBe(1);
+    expect(Array.isArray(list.body.data)).toBe(true);
+    expect(list.body.data.length).toBe(1);
+    expect(list.body.pagination).toEqual(expect.objectContaining({
+      page: 1,
+      limit: 20,
+      total: 1,
+      pages: 1
+    }));
     expect(list.body.meta.requestId).toBeTruthy();
   });
 
@@ -60,7 +66,7 @@ describe('patients', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(listAfterDelete.status).toBe(200);
-    expect(listAfterDelete.body.data.patients).toHaveLength(0);
+    expect(listAfterDelete.body.data).toHaveLength(0);
 
     const restore = await request(app)
       .post(`/api/patients/${patientId}/restore`)

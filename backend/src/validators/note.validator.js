@@ -16,7 +16,7 @@ export const noteIdSchema = z.object({
 export const listNotesSchema = z.object({
     query: z.object({
         page: z.preprocess((val) => Number(val || 1), z.number().int().min(1)).default(1),
-        limit: z.preprocess((val) => Number(val || 10), z.number().int().min(1).max(100)).default(10),
+        limit: z.preprocess((val) => Number(val || 20), z.number().int().min(1).max(100)).default(20),
         patientId: z.string().uuid().optional()
     })
 });

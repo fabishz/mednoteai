@@ -29,6 +29,11 @@ export const create = asyncHandler(async (req, res) => {
   });
 });
 
+export const listEncounters = asyncHandler(async (req, res) => {
+  const result = await VoiceNoteService.listEncounters(req.validated.query);
+  res.json(result);
+});
+
 export const getPlaybackUrl = asyncHandler(async (req, res) => {
   const data = await VoicePlaybackService.getPlaybackUrl({
     actorUser: req.user,

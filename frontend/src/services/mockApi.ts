@@ -124,7 +124,7 @@ export const mockApi = {
           page,
           limit,
           total: mockPatients.length,
-          totalPages: Math.ceil(mockPatients.length / limit),
+          pages: Math.ceil(mockPatients.length / limit),
         },
       };
     },
@@ -173,7 +173,7 @@ export const mockApi = {
           page,
           limit,
           total: filtered.length,
-          totalPages: Math.ceil(filtered.length / limit),
+          pages: Math.ceil(filtered.length / limit),
         },
       };
     },
