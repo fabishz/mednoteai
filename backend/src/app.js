@@ -21,6 +21,8 @@ import { sentryErrorMiddleware } from './lib/sentry.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import encounterRoutes from './routes/encounter.routes.js';
 import templateRoutes from './routes/template.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
+import billingRoutes from './routes/billing.routes.js';
 
 export const app = express();
 
@@ -55,6 +57,7 @@ app.use(cors({
   credentials: !allowedOrigins.includes('*')
 }));
 app.use(generalLimiter);
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '1mb' }));
 
 app.use('/health', healthRoutes);
@@ -83,6 +86,8 @@ app.use('/api/encounters', authMiddleware, encounterRoutes);
 app.use('/api/audit-logs', authMiddleware, auditLogRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/templates', authMiddleware, templateRoutes);
+app.use('/api/settings', authMiddleware, settingsRoutes);
+app.use('/api/billing', billingRoutes);
 
 app.use(notFound);
 app.use(sentryErrorMiddleware);

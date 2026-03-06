@@ -38,6 +38,17 @@ const envSchema = z.object({
     (val) => (val === undefined || val === null || val === '' ? 40 : Number(val)),
     z.number().int().positive().max(5000).default(40)
   ),
+  RETENTION_SWEEP_INTERVAL_MS: z.preprocess(
+    (val) => (val === undefined || val === null || val === '' ? 24 * 60 * 60 * 1000 : Number(val)),
+    z.number().int().positive().default(24 * 60 * 60 * 1000)
+  ),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_PRICE_STARTER: z.string().min(1).optional(),
+  STRIPE_PRICE_PROFESSIONAL: z.string().min(1).optional(),
+  STRIPE_PRICE_CLINIC: z.string().min(1).optional(),
+  BILLING_SUCCESS_URL: z.string().url().optional(),
+  BILLING_CANCEL_URL: z.string().url().optional(),
   AWS_REGION: z.string().min(1),
   S3_VOICE_BUCKET: z.string().min(1)
 });
@@ -78,6 +89,14 @@ export const env = {
   rateLimitWindowMs: parsed.data.RATE_LIMIT_WINDOW_MS,
   rateLimitMax: parsed.data.RATE_LIMIT_MAX,
   healthcheckTimeoutMs: parsed.data.HEALTHCHECK_TIMEOUT_MS,
+  retentionSweepIntervalMs: parsed.data.RETENTION_SWEEP_INTERVAL_MS,
+  stripeSecretKey: parsed.data.STRIPE_SECRET_KEY,
+  stripeWebhookSecret: parsed.data.STRIPE_WEBHOOK_SECRET,
+  stripePriceStarter: parsed.data.STRIPE_PRICE_STARTER,
+  stripePriceProfessional: parsed.data.STRIPE_PRICE_PROFESSIONAL,
+  stripePriceClinic: parsed.data.STRIPE_PRICE_CLINIC,
+  billingSuccessUrl: parsed.data.BILLING_SUCCESS_URL,
+  billingCancelUrl: parsed.data.BILLING_CANCEL_URL,
   awsRegion: parsed.data.AWS_REGION,
   s3VoiceBucket: parsed.data.S3_VOICE_BUCKET
 };

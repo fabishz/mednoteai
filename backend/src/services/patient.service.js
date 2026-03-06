@@ -7,6 +7,9 @@ import { AuditService } from './audit.service.js';
 import { DashboardService } from './dashboard.service.js';
 import { buildPaginatedResult, getPaginationParams } from '../utils/pagination.js';
 
+const ANONYMIZED_PATIENT_NAME = 'Deleted Patient';
+const ANONYMIZED_PHONE = 'REDACTED';
+
 export class PatientService {
     static async ensurePatientExistsWithTenantCheck(id, options = {}) {
         const patient = await prisma.patient.findFirst({
@@ -168,6 +171,13 @@ export class PatientService {
 
     static async restorePatient(id) {
         const patient = await this.ensurePatientExistsWithTenantCheck(id, { includeDeleted: true });
+        if (patient.anonymizedAt) {
+            throw Object.assign(new Error('Anonymized patient cannot be restored'), {
+                status: 409,
+                code: 'PATIENT_ANONYMIZED'
+            });
+        }
+
         if (!patient.deletedAt) {
             return patient;
         }
@@ -204,7 +214,60 @@ export class PatientService {
         return restored;
     }
 
+    static async anonymizePatientPermanently(actorUserId, id) {
+        const patient = await this.ensurePatientExistsWithTenantCheck(id, { includeDeleted: true });
+        if (patient.anonymizedAt) {
+            throw Object.assign(new Error('Patient already anonymized'), {
+                status: 409,
+                code: 'PATIENT_ALREADY_ANONYMIZED'
+            });
+        }
+
+        const anonymizedAt = new Date();
+        const anonymizedPatient = await prisma.$transaction(async (tx) => {
+            const updatedPatient = await tx.patient.update({
+                where: { id },
+                data: {
+                    fullName: ANONYMIZED_PATIENT_NAME,
+                    phone: ANONYMIZED_PHONE,
+                    deletedAt: anonymizedAt,
+                    anonymizedAt
+                },
+                __includeDeleted: true
+            });
+
+            await tx.medicalNote.updateMany({
+                where: { patientId: id, deletedAt: null },
+                data: { deletedAt: anonymizedAt }
+            });
+
+            await tx.voiceNote.updateMany({
+                where: { patientId: id, deletedAt: null },
+                data: { deletedAt: anonymizedAt }
+            });
+
+            return updatedPatient;
+        });
+
+        await AuditService.logEvent({
+            action: AuditAction.PATIENT_ANONYMIZED,
+            entityType: AuditEntityType.PATIENT,
+            entityId: id,
+            userId: actorUserId,
+            metadata: {
+                patientId: id,
+                timestamp: anonymizedAt.toISOString()
+            }
+        });
+
+        return anonymizedPatient;
+    }
+
     static async delete(_doctorId, id) {
         return this.softDeletePatient(id);
+    }
+
+    static async permanentDelete(actorUserId, id) {
+        return this.anonymizePatientPermanently(actorUserId, id);
     }
 }

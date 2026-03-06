@@ -4,7 +4,7 @@ import { ignoreSoftDeleted } from './prismaSoftDelete.js';
 
 export const prisma = new PrismaClient();
 
-const TENANT_MODELS = new Set(['Patient', 'MedicalNote', 'VoiceNote', 'Report', 'AuditLog', 'Template']);
+const TENANT_MODELS = new Set(['Patient', 'MedicalNote', 'VoiceNote', 'Report', 'AuditLog', 'Template', 'RetentionPolicy', 'Subscription']);
 const SCOPED_ACTIONS = new Set([
   'findMany',
   'findFirst',
@@ -70,7 +70,15 @@ function scopeCreateData(data, clinicId) {
 }
 
 export function assertAuditLogActionAllowed(params) {
-  if (params.model === 'AuditLog' && IMMUTABLE_AUDIT_ACTIONS.has(params.action)) {
+  const ctx = getRequestContext();
+  const isSystemRetentionCleanup =
+    ctx?.user?.id === 'SYSTEM_RETENTION_JOB' && ctx?.user?.role === 'SUPER_ADMIN';
+
+  if (
+    params.model === 'AuditLog' &&
+    IMMUTABLE_AUDIT_ACTIONS.has(params.action) &&
+    !isSystemRetentionCleanup
+  ) {
     throw tenantError('Audit logs are immutable', 403, 'IMMUTABLE_AUDIT_LOG');
   }
 }

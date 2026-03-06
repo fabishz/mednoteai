@@ -60,6 +60,18 @@ export const restore = asyncHandler(async (req, res) => {
     });
 });
 
+export const permanentRemove = asyncHandler(async (req, res) => {
+    const patient = await PatientService.permanentDelete(req.user.id, req.validated.params.id);
+    res.json({
+        success: true,
+        message: 'Patient permanently anonymized',
+        data: {
+            id: patient.id,
+            anonymizedAt: patient.anonymizedAt
+        }
+    });
+});
+
 export const exportData = asyncHandler(async (req, res) => {
     const { id } = req.validated.params;
     const { format } = req.validated.query;

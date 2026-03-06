@@ -199,6 +199,13 @@ router.delete(
   patientController.remove
 );
 
+router.delete(
+  '/:id/permanent',
+  authorize(Permissions.PATIENT_DELETE),
+  validate(patientValidator.patientIdSchema),
+  patientController.permanentRemove
+);
+
 router.post(
   '/:id/restore',
   authorize(Permissions.PATIENT_UPDATE),

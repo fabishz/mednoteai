@@ -4,6 +4,7 @@ import { logger } from './config/logger.js';
 import { prisma } from './config/prisma.js';
 import { redis } from './config/redis.js';
 import { initSentry, registerSentryProcessHandlers } from './lib/sentry.js';
+import { RetentionService } from './services/retention.service.js';
 
 initSentry();
 registerSentryProcessHandlers();
@@ -11,6 +12,10 @@ registerSentryProcessHandlers();
 const server = app.listen(env.port, () => {
   logger.info({ port: env.port, env: env.nodeEnv }, 'server_started');
 });
+
+if (env.nodeEnv !== 'test') {
+  RetentionService.startRetentionSweepJob();
+}
 
 const shutdown = async (signal) => {
   logger.info({ signal }, 'shutdown_started');
