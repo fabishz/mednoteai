@@ -57,7 +57,7 @@ app.use(cors({
   credentials: !allowedOrigins.includes('*')
 }));
 app.use(generalLimiter);
-app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
+app.use(['/api/billing/webhook', '/billing/webhook'], express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '1mb' }));
 
 app.use('/health', healthRoutes);
@@ -88,6 +88,7 @@ app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/templates', authMiddleware, templateRoutes);
 app.use('/api/settings', authMiddleware, settingsRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/billing', billingRoutes);
 
 app.use(notFound);
 app.use(sentryErrorMiddleware);
