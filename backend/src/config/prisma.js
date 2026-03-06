@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { getRequestContext } from '../middlewares/requestContext.js';
+import { ignoreSoftDeleted } from './prismaSoftDelete.js';
 
 export const prisma = new PrismaClient();
 
@@ -8,6 +9,7 @@ const SCOPED_ACTIONS = new Set([
   'findMany',
   'findFirst',
   'findUnique',
+  'count',
   'update',
   'updateMany',
   'delete',
@@ -73,6 +75,8 @@ export function assertAuditLogActionAllowed(params) {
   }
 }
 
+prisma.$use(ignoreSoftDeleted());
+
 prisma.$use(async (params, next) => {
   assertAuditLogActionAllowed(params);
 
@@ -129,7 +133,7 @@ prisma.$use(async (params, next) => {
     return next(params);
   }
 
-  if (params.action === 'findMany' || params.action === 'findFirst') {
+  if (params.action === 'findMany' || params.action === 'findFirst' || params.action === 'count') {
     params.args.where = mergeWhereWithClinic(params.args.where, clinicId);
     return next(params);
   }

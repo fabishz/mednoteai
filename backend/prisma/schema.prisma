@@ -76,6 +76,7 @@ model Patient {
   doctorId   String
   clinicId   String
   createdAt  DateTime      @default(now())
+  deletedAt  DateTime?
   doctor     User          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   clinic     Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   notes      MedicalNote[]
@@ -86,6 +87,7 @@ model Patient {
   @@index([doctorId])
   @@index([clinicId])
   @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model MedicalNote {
@@ -96,6 +98,7 @@ model MedicalNote {
   patientId        String
   clinicId         String
   createdAt        DateTime @default(now())
+  deletedAt        DateTime?
   doctor           User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   clinic           Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
@@ -105,6 +108,7 @@ model MedicalNote {
   @@index([patientId])
   @@index([clinicId])
   @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model VoiceNote {
@@ -118,6 +122,7 @@ model VoiceNote {
   fileSizeBytes   Int
   mimeType        String
   createdAt       DateTime @default(now())
+  deletedAt       DateTime?
   createdByUser   User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
@@ -127,6 +132,7 @@ model VoiceNote {
   @@index([patientId])
   @@index([clinicId])
   @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model Report {

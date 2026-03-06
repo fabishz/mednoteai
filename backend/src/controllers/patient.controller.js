@@ -43,3 +43,12 @@ export const remove = asyncHandler(async (req, res) => {
         data: { id: req.validated.params.id }
     });
 });
+
+export const restore = asyncHandler(async (req, res) => {
+    const patient = await PatientService.restorePatient(req.validated.params.id);
+    res.json({
+        success: true,
+        message: 'Patient restored successfully',
+        data: patient
+    });
+});

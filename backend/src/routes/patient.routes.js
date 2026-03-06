@@ -185,4 +185,11 @@ router.delete(
   patientController.remove
 );
 
+router.post(
+  '/:id/restore',
+  authorize(Permissions.PATIENT_UPDATE),
+  validate(patientValidator.patientIdSchema),
+  patientController.restore
+);
+
 export default router;

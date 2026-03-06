@@ -5,6 +5,28 @@ import { runWithRequestContext } from '../middlewares/requestContext.js';
 import { AuditService } from './audit.service.js';
 
 export class PatientService {
+    static async ensurePatientExistsWithTenantCheck(id, options = {}) {
+        const patient = await prisma.patient.findFirst({
+            where: { id },
+            __includeDeleted: options.includeDeleted === true
+        });
+
+        if (patient) {
+            return patient;
+        }
+
+        const existsInAnotherClinic = await runWithRequestContext(
+            { user: { role: Roles.SUPER_ADMIN } },
+            async () => prisma.patient.findUnique({ where: { id }, __includeDeleted: true })
+        );
+
+        if (existsInAnotherClinic) {
+            throw Object.assign(new Error('Access to this patient is forbidden'), { status: 403, code: 'FORBIDDEN' });
+        }
+
+        throw Object.assign(new Error('Patient not found'), { status: 404, code: 'PATIENT_NOT_FOUND' });
+    }
+
     static async createPatient(doctorId, payload) {
         const patient = await prisma.patient.create({
             data: { ...payload, doctorId }
@@ -42,20 +64,7 @@ export class PatientService {
     }
 
     static async getById(id) {
-        const patient = await prisma.patient.findFirst({ where: { id } });
-        if (!patient) {
-            const existsInAnotherClinic = await runWithRequestContext(
-                { user: { role: Roles.SUPER_ADMIN } },
-                async () => prisma.patient.findUnique({ where: { id } })
-            );
-
-            if (existsInAnotherClinic) {
-                throw Object.assign(new Error('Access to this patient is forbidden'), { status: 403, code: 'FORBIDDEN' });
-            }
-
-            throw Object.assign(new Error('Patient not found'), { status: 404, code: 'PATIENT_NOT_FOUND' });
-        }
-        return patient;
+        return this.ensurePatientExistsWithTenantCheck(id);
     }
 
     static async updatePatient(id, payload) {
@@ -85,9 +94,29 @@ export class PatientService {
         return this.updatePatient(id, payload);
     }
 
-    static async delete(_doctorId, id) {
+    static async softDeletePatient(id) {
         const patient = await this.getById(id);
-        const deleted = await prisma.patient.delete({ where: { id } });
+        const deletedAt = new Date();
+
+        const deleted = await prisma.$transaction(async (tx) => {
+            const updatedPatient = await tx.patient.update({
+                where: { id },
+                data: { deletedAt }
+            });
+
+            await tx.medicalNote.updateMany({
+                where: { patientId: id, deletedAt: null },
+                data: { deletedAt }
+            });
+
+            await tx.voiceNote.updateMany({
+                where: { patientId: id, deletedAt: null },
+                data: { deletedAt }
+            });
+
+            return updatedPatient;
+        });
+
         await AuditService.logEvent({
             action: AuditAction.PATIENT_DELETED,
             entityType: AuditEntityType.PATIENT,
@@ -95,5 +124,47 @@ export class PatientService {
             metadata: { fullName: patient.fullName }
         });
         return deleted;
+    }
+
+    static async restorePatient(id) {
+        const patient = await this.ensurePatientExistsWithTenantCheck(id, { includeDeleted: true });
+        if (!patient.deletedAt) {
+            return patient;
+        }
+
+        const restored = await prisma.$transaction(async (tx) => {
+            const restoredPatient = await tx.patient.update({
+                where: { id },
+                data: { deletedAt: null },
+                __includeDeleted: true
+            });
+
+            await tx.medicalNote.updateMany({
+                where: { patientId: id },
+                data: { deletedAt: null },
+                __includeDeleted: true
+            });
+
+            await tx.voiceNote.updateMany({
+                where: { patientId: id },
+                data: { deletedAt: null },
+                __includeDeleted: true
+            });
+
+            return restoredPatient;
+        });
+
+        await AuditService.logEvent({
+            action: AuditAction.PATIENT_UPDATED,
+            entityType: AuditEntityType.PATIENT,
+            entityId: patient.id,
+            metadata: { fullName: patient.fullName, restored: true }
+        });
+
+        return restored;
+    }
+
+    static async delete(_doctorId, id) {
+        return this.softDeletePatient(id);
     }
 }

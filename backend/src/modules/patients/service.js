@@ -41,5 +41,23 @@ export async function updatePatient(id, payload) {
 
 export async function deletePatient(id) {
   await getPatient(id);
-  return prisma.patient.delete({ where: { id } });
+  const deletedAt = new Date();
+  return prisma.$transaction(async (tx) => {
+    const patient = await tx.patient.update({
+      where: { id },
+      data: { deletedAt }
+    });
+
+    await tx.medicalNote.updateMany({
+      where: { patientId: id, deletedAt: null },
+      data: { deletedAt }
+    });
+
+    await tx.voiceNote.updateMany({
+      where: { patientId: id, deletedAt: null },
+      data: { deletedAt }
+    });
+
+    return patient;
+  });
 }

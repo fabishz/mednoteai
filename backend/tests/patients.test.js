@@ -30,6 +30,55 @@ describe('patients', () => {
     expect(list.body.meta.requestId).toBeTruthy();
   });
 
+  it('soft deletes and restores a patient', async () => {
+    const token = await registerAndLogin();
+
+    const create = await request(app)
+      .post('/api/patients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ fullName: 'Soft Delete', age: 40, gender: 'female', phone: '555-1111' });
+
+    expect(create.status).toBe(201);
+    const patientId = create.body.data.id;
+
+    const remove = await request(app)
+      .delete(`/api/patients/${patientId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(remove.status).toBe(200);
+    expect(remove.body.success).toBe(true);
+
+    const getDeleted = await request(app)
+      .get(`/api/patients/${patientId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(getDeleted.status).toBe(404);
+    expect(getDeleted.body.error_code).toBe('PATIENT_NOT_FOUND');
+
+    const listAfterDelete = await request(app)
+      .get('/api/patients')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(listAfterDelete.status).toBe(200);
+    expect(listAfterDelete.body.data.patients).toHaveLength(0);
+
+    const restore = await request(app)
+      .post(`/api/patients/${patientId}/restore`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(restore.status).toBe(200);
+    expect(restore.body.success).toBe(true);
+    expect(restore.body.data.id).toBe(patientId);
+    expect(restore.body.data.deletedAt).toBeNull();
+
+    const getRestored = await request(app)
+      .get(`/api/patients/${patientId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(getRestored.status).toBe(200);
+    expect(getRestored.body.data.id).toBe(patientId);
+  });
+
   it('returns 403 when a clinic user accesses a patient from another clinic', async () => {
     const clinicAToken = await registerAndLogin({
       name: 'Dr. Clinic A',
