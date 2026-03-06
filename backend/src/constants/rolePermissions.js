@@ -12,6 +12,10 @@ export const rolePermissions = Object.freeze({
     Permissions.NOTE_READ,
     Permissions.NOTE_UPDATE,
     Permissions.NOTE_DELETE,
+    Permissions.TEMPLATE_CREATE,
+    Permissions.TEMPLATE_READ,
+    Permissions.TEMPLATE_UPDATE,
+    Permissions.TEMPLATE_DELETE,
     Permissions.USER_INVITE,
     Permissions.USER_DELETE,
     Permissions.AUDIT_VIEW,
@@ -23,16 +27,21 @@ export const rolePermissions = Object.freeze({
     Permissions.PATIENT_UPDATE,
     Permissions.NOTE_CREATE,
     Permissions.NOTE_READ,
-    Permissions.NOTE_UPDATE
+    Permissions.NOTE_UPDATE,
+    Permissions.TEMPLATE_CREATE,
+    Permissions.TEMPLATE_READ,
+    Permissions.TEMPLATE_UPDATE
   ]),
   [Roles.NURSE]: Object.freeze([
     Permissions.PATIENT_READ,
     Permissions.NOTE_READ,
-    Permissions.NOTE_CREATE
+    Permissions.NOTE_CREATE,
+    Permissions.TEMPLATE_READ
   ]),
   [Roles.STAFF]: Object.freeze([
     Permissions.PATIENT_READ,
-    Permissions.NOTE_READ
+    Permissions.NOTE_READ,
+    Permissions.TEMPLATE_READ
   ])
 });
 

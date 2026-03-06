@@ -4,7 +4,7 @@ import { ignoreSoftDeleted } from './prismaSoftDelete.js';
 
 export const prisma = new PrismaClient();
 
-const TENANT_MODELS = new Set(['Patient', 'MedicalNote', 'VoiceNote', 'Report', 'AuditLog']);
+const TENANT_MODELS = new Set(['Patient', 'MedicalNote', 'VoiceNote', 'Report', 'AuditLog', 'Template']);
 const SCOPED_ACTIONS = new Set([
   'findMany',
   'findFirst',

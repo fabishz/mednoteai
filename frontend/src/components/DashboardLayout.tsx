@@ -2,7 +2,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/use-theme";
 import {
-  LayoutDashboard, Users, FileText, BarChart3, Settings,
+  LayoutDashboard, Users, FileText, BarChart3, Settings, ClipboardList,
   LogOut, Moon, Sun, Shield, ChevronLeft, Menu,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Patients", path: "/dashboard/patients", icon: Users },
   { label: "Notes", path: "/dashboard/notes", icon: FileText },
+  { label: "Templates", path: "/dashboard/templates", icon: ClipboardList },
   { label: "Reports", path: "/dashboard/reports", icon: BarChart3 },
   { label: "Settings", path: "/dashboard/settings", icon: Settings },
 ];

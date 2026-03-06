@@ -45,6 +45,7 @@ model Clinic {
   medicalNotes MedicalNote[]
   voiceNotes   VoiceNote[]
   reports      Report[]
+  templates    Template[]
 }
 
 model User {
@@ -168,5 +169,19 @@ model AuditLog {
 
   @@index([clinicId])
   @@index([userId])
+  @@index([createdAt])
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  clinicId  String
+  name      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, id])
+  @@index([clinicId])
   @@index([createdAt])
 }

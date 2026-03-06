@@ -20,6 +20,7 @@ import healthRoutes from './routes/health.routes.js';
 import { sentryErrorMiddleware } from './lib/sentry.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import encounterRoutes from './routes/encounter.routes.js';
+import templateRoutes from './routes/template.routes.js';
 
 export const app = express();
 
@@ -81,6 +82,7 @@ app.use('/api/voice-notes', authMiddleware, voiceNoteRoutes);
 app.use('/api/encounters', authMiddleware, encounterRoutes);
 app.use('/api/audit-logs', authMiddleware, auditLogRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+app.use('/api/templates', authMiddleware, templateRoutes);
 
 app.use(notFound);
 app.use(sentryErrorMiddleware);
