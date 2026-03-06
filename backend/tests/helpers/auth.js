@@ -7,7 +7,15 @@ export async function registerAndLogin({
   password = 'StrongPass123',
   clinicName = 'Test Clinic'
 } = {}) {
-  await request(app).post('/api/auth/register').send({ name, email, password, clinicName });
+  const registerRes = await request(app).post('/api/auth/register').send({ name, email, password, clinicName });
+  if (registerRes.status >= 400) {
+    throw new Error(`register failed: ${registerRes.status} ${registerRes.body?.message || 'unknown error'}`);
+  }
+
   const loginRes = await request(app).post('/api/auth/login').send({ email, password });
+  if (loginRes.status >= 400 || !loginRes.body?.data?.accessToken) {
+    throw new Error(`login failed: ${loginRes.status} ${loginRes.body?.message || 'missing access token'}`);
+  }
+
   return loginRes.body.data.accessToken;
 }

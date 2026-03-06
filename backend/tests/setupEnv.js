@@ -1,5 +1,11 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/mednoteai_test';
+process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
+  || process.env.DATABASE_URL
+  || 'postgresql://user:password@localhost:5432/mednoteai_test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret_long_random_value';
 process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 process.env.AI_API_URL = process.env.AI_API_URL || 'https://api.example.com/v1/generate';
