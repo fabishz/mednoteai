@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma.js';
+import { Prisma } from '@prisma/client';
 import { Roles } from '../constants/roles.js';
 import { AuditAction, AuditEntityType } from '../constants/audit.js';
 import { runWithRequestContext } from '../middlewares/requestContext.js';
@@ -87,6 +88,46 @@ export class PatientService {
 
     static async list(_doctorId, query) {
         return this.getPatients(query);
+    }
+
+    static async search(actor, query) {
+        const searchTerm = String(query || '').trim();
+        if (!searchTerm) {
+            return [];
+        }
+
+        const clinicFilter = actor?.role === Roles.SUPER_ADMIN
+            ? Prisma.sql``
+            : Prisma.sql`AND p."clinicId" = ${actor?.clinicId ?? ''}`;
+
+        const rows = await prisma.$queryRaw`
+            SELECT
+              p.id,
+              p."fullName",
+              p."createdAt"
+            FROM "Patient" p
+            WHERE p."deletedAt" IS NULL
+              ${clinicFilter}
+              AND (
+                to_tsvector('simple', COALESCE(p."fullName", '') || ' ' || COALESCE(p.id::text, ''))
+                  @@ plainto_tsquery('simple', ${searchTerm})
+                OR p."fullName" ILIKE ${`%${searchTerm}%`}
+                OR p.id::text ILIKE ${`%${searchTerm}%`}
+              )
+            ORDER BY
+              ts_rank(
+                to_tsvector('simple', COALESCE(p."fullName", '') || ' ' || COALESCE(p.id::text, '')),
+                plainto_tsquery('simple', ${searchTerm})
+              ) DESC,
+              p."createdAt" DESC
+            LIMIT 10
+        `;
+
+        return rows.map((item) => ({
+            id: item.id,
+            fullName: item.fullName,
+            patientId: item.id
+        }));
     }
 
     static async update(_doctorId, id, payload) {

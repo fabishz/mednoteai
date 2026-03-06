@@ -15,6 +15,14 @@ export const list = asyncHandler(async (req, res) => {
     res.json(result);
 });
 
+export const search = asyncHandler(async (req, res) => {
+    const data = await PatientService.search(req.user, req.validated.query.q);
+    res.json({
+        success: true,
+        data
+    });
+});
+
 export const getById = asyncHandler(async (req, res) => {
     const patient = await PatientService.getById(req.validated.params.id);
     res.json({

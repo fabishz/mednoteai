@@ -95,6 +95,13 @@ router.get(
   patientController.list
 );
 
+router.get(
+  '/search',
+  authorize(Permissions.PATIENT_READ),
+  validate(patientValidator.searchPatientsSchema),
+  patientController.search
+);
+
 /**
  * @openapi
  * /api/patients/{id}:

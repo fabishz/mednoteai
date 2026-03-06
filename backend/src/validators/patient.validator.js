@@ -35,3 +35,9 @@ export const listPatientsSchema = z.object({
         limit: z.preprocess((val) => Number(val || 20), z.number().int().min(1).max(100)).default(20)
     })
 });
+
+export const searchPatientsSchema = z.object({
+    query: z.object({
+        q: z.string().min(1, 'Search term is required').max(120)
+    })
+});

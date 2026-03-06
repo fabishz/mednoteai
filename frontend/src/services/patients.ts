@@ -62,6 +62,12 @@ export interface PaginatedPatients {
   };
 }
 
+export interface PatientSearchResult {
+  id: string;
+  fullName: string;
+  patientId: string;
+}
+
 export class PatientsService {
   /**
    * Create a new patient
@@ -130,7 +136,7 @@ export class PatientsService {
   /**
    * Search patients by name or MRN
    */
-  async searchPatients(query: string): Promise<Patient[]> {
+  async searchPatients(query: string): Promise<PatientSearchResult[]> {
     try {
       const response = await apiClient.get<any>(`/patients/search?q=${encodeURIComponent(query)}`);
       return response.data.data;
