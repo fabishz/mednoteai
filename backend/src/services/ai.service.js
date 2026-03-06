@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma.js';
 import { AuditAction, AuditEntityType } from '../constants/audit.js';
 import { AIClient } from '../utils/aiClient.js';
 import { AuditService } from './audit.service.js';
+import { DashboardService } from './dashboard.service.js';
 
 export class AIService {
     static FREE_TIER_LIMIT = 10;
@@ -10,7 +11,7 @@ export class AIService {
         // 1. Check free tier limit
         const user = await prisma.user.findUnique({
             where: { id: doctorId },
-            select: { noteCount: true }
+            select: { noteCount: true, clinicId: true }
         });
 
         if (user.noteCount >= this.FREE_TIER_LIMIT) {
@@ -53,6 +54,7 @@ export class AIService {
             entityId: note.id,
             metadata: { patientId: note.patientId }
         });
+        await DashboardService.invalidateClinicStats(user.clinicId);
 
         return note;
     }

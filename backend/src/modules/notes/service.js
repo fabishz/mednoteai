@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma.js';
 import { generateStructuredNote } from '../../utils/aiClient.js';
+import { DashboardService } from '../../services/dashboard.service.js';
 
 async function ensurePatient(doctorId, patientId) {
   const patient = await prisma.patient.findFirst({ where: { id: patientId, doctorId } });
@@ -21,6 +22,7 @@ export async function generateNote(doctorId, { patientId, rawInputText }) {
       structuredOutput
     }
   });
+  await DashboardService.invalidateClinicStats(note.clinicId);
 
   return note;
 }

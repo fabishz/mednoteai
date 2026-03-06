@@ -3,6 +3,7 @@ import { Roles } from '../constants/roles.js';
 import { AuditAction, AuditEntityType } from '../constants/audit.js';
 import { runWithRequestContext } from '../middlewares/requestContext.js';
 import { AuditService } from './audit.service.js';
+import { DashboardService } from './dashboard.service.js';
 
 export class PatientService {
     static async ensurePatientExistsWithTenantCheck(id, options = {}) {
@@ -31,6 +32,7 @@ export class PatientService {
         const patient = await prisma.patient.create({
             data: { ...payload, doctorId }
         });
+        await DashboardService.invalidateClinicStats(patient.clinicId);
         await AuditService.logEvent({
             action: AuditAction.PATIENT_CREATED,
             entityType: AuditEntityType.PATIENT,

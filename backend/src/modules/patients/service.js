@@ -1,11 +1,14 @@
 import { prisma } from '../../config/prisma.js';
 import { Roles } from '../../constants/roles.js';
 import { runWithRequestContext } from '../../middlewares/requestContext.js';
+import { DashboardService } from '../../services/dashboard.service.js';
 
 export async function createPatient(doctorId, payload) {
-  return prisma.patient.create({
+  const patient = await prisma.patient.create({
     data: { ...payload, doctorId }
   });
+  await DashboardService.invalidateClinicStats(patient.clinicId);
+  return patient;
 }
 
 export async function listPatients() {
