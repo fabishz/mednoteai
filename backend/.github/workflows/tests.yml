@@ -1,0 +1,65 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: mednote
+          POSTGRES_PASSWORD: mednote
+          POSTGRES_DB: mednote_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U mednote" 
+          --health-interval=5s 
+          --health-timeout=5s 
+          --health-retries=10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://mednote:mednote@localhost:5432/mednote_test
+      JWT_SECRET: test_secret_long_random_value
+      JWT_EXPIRES_IN: 7d
+      AI_API_URL: https://api.example.com/v1/generate
+      AI_API_KEY: test_key
+      AI_MODEL: test-model
+      CORS_ORIGIN: "*"
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Cache Prisma Engines
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prisma
+          key: prisma-${{ runner.os }}-${{ hashFiles('prisma/schema.prisma') }}
+          restore-keys: |
+            prisma-${{ runner.os }}-
+
+      - name: Prisma Generate
+        run: npx prisma generate
+
+      - name: Prisma Migrate
+        run: npx prisma migrate deploy
+
+      - name: Test
+        run: npm test

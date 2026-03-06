@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  DOCTOR
+  NURSE
+  STAFF
+}
+
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  PATIENT_CREATED
+  PATIENT_UPDATED
+  PATIENT_DELETED
+  NOTE_CREATED
+  NOTE_UPDATED
+  NOTE_DELETED
+  USER_ROLE_CHANGED
+}
+
+enum AuditEntityType {
+  USER
+  PATIENT
+  NOTE
+  VOICE_NOTE
+  REPORT
+  AUTH
+}
+
+model Clinic {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  createdAt    DateTime      @default(now())
+  users        User[]
+  patients     Patient[]
+  medicalNotes MedicalNote[]
+  voiceNotes   VoiceNote[]
+  reports      Report[]
+}
+
+model User {
+  id         String        @id @default(uuid())
+  name       String
+  email      String        @unique
+  password   String
+  clinicName String
+  clinicId   String
+  role       UserRole      @default(DOCTOR)
+  noteCount  Int           @default(0)
+  createdAt  DateTime      @default(now())
+  clinic     Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patients   Patient[]
+  notes      MedicalNote[]
+  voiceNotes VoiceNote[]
+  reports    Report[]
+
+  @@index([clinicId])
+  @@index([clinicId, id])
+}
+
+model Patient {
+  id         String        @id @default(uuid())
+  fullName   String
+  age        Int
+  gender     String
+  phone      String
+  doctorId   String
+  clinicId   String
+  createdAt  DateTime      @default(now())
+  doctor     User          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  clinic     Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  notes      MedicalNote[]
+  voiceNotes VoiceNote[]
+  reports    Report[]
+
+  @@unique([clinicId, id])
+  @@index([doctorId])
+  @@index([clinicId])
+  @@index([createdAt])
+}
+
+model MedicalNote {
+  id               String   @id @default(uuid())
+  rawInputText     String
+  structuredOutput String
+  doctorId         String
+  patientId        String
+  clinicId         String
+  createdAt        DateTime @default(now())
+  doctor           User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinic           Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, id])
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([clinicId])
+  @@index([createdAt])
+}
+
+model VoiceNote {
+  id              String   @id @default(uuid())
+  clinicId        String
+  patientId       String
+  createdByUserId String
+  audioKey        String
+  transcript      String?
+  durationSeconds Int
+  fileSizeBytes   Int
+  mimeType        String
+  createdAt       DateTime @default(now())
+  createdByUser   User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, id])
+  @@index([createdByUserId])
+  @@index([patientId])
+  @@index([clinicId])
+  @@index([createdAt])
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  doctorId  String
+  patientId String
+  clinicId  String
+  createdAt DateTime @default(now())
+  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, id])
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([clinicId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String          @id @default(uuid())
+  clinicId   String
+  userId     String
+  action     AuditAction
+  entityType AuditEntityType
+  entityId   String?
+  metadata   Json?
+  ipAddress  String
+  userAgent  String
+  createdAt  DateTime        @default(now())
+
+  @@index([clinicId])
+  @@index([userId])
+  @@index([createdAt])
+}
