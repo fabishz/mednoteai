@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "security-scan": "npm audit --audit-level=critical && npx snyk test --severity-threshold=critical",
     "test": "vitest run",
     "test:watch": "vitest"
   },

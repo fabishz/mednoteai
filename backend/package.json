@@ -9,6 +9,7 @@
     "loadtest:k6": "k6 run loadtest/mednote-loadtest.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "security-scan": "npm audit --audit-level=critical && npx snyk test --severity-threshold=critical",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
   },
