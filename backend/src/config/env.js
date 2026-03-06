@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import pino from 'pino';
 import { z } from 'zod';
 
 dotenv.config();
@@ -43,7 +44,19 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Invalid environment variables:', parsed.error.format());
+  const bootstrapLogger = pino({
+    level: 'error',
+    base: {
+      service: 'mednote-api',
+      environment: process.env.NODE_ENV || 'development',
+    },
+    messageKey: 'message',
+    timestamp: pino.stdTimeFunctions.isoTime,
+    formatters: {
+      level: (label) => ({ level: label }),
+    },
+  });
+  bootstrapLogger.error({ issues: parsed.error.format() }, 'Invalid environment variables');
   process.exit(1);
 }
 

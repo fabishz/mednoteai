@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
-import { httpLogger } from './config/logger.js';
+import { errorLoggingMiddleware, httpLogger } from './config/logger.js';
 import { swaggerSpec } from './config/swagger.js';
 import { errorHandler, notFound } from './middlewares/error.js';
 import { authMiddleware } from './middlewares/auth.js';
@@ -78,4 +78,5 @@ app.use('/api/voice-notes', authMiddleware, voiceNoteRoutes);
 app.use('/api/audit-logs', authMiddleware, auditLogRoutes);
 
 app.use(notFound);
+app.use(errorLoggingMiddleware);
 app.use(errorHandler);

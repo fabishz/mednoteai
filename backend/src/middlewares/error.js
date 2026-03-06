@@ -1,5 +1,4 @@
 import { env } from '../config/env.js';
-import { logger } from '../config/logger.js';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
 
@@ -50,19 +49,6 @@ export const errorHandler = (err, req, res, next) => {
 
   if (env.nodeEnv === 'development') {
     response.stack = err.stack;
-  }
-
-  // Log error (avoid logging 4xx as errors in some cases, but here we log all for audit)
-  if (statusCode >= 500) {
-    logger.error({ err, requestId: req.requestId, path: req.path, method: req.method });
-  } else {
-    logger.warn({
-      message: err.message,
-      code: err.code,
-      requestId: req.requestId,
-      path: req.path,
-      method: req.method
-    });
   }
 
   res.status(statusCode).json(response);

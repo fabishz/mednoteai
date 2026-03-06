@@ -8,6 +8,7 @@ export function requestContext(req, res, next) {
   const requestId = typeof incomingId === 'string' && incomingId.trim() ? incomingId : crypto.randomUUID();
 
   requestContextStorage.run({ requestId }, () => {
+    req.id = requestId;
     req.requestId = requestId;
     res.setHeader('X-Request-Id', requestId);
     next();
