@@ -1,8 +1,9 @@
 import { prisma } from '../config/prisma.js';
+import { buildPaginatedResult, getPaginationParams } from '../utils/pagination.js';
 
 export class NoteService {
-    static async list(doctorId, { page = 1, limit = 10, patientId }) {
-        const skip = (page - 1) * limit;
+    static async list(doctorId, { page = 1, limit = 20, patientId }) {
+        const paginationParams = getPaginationParams({ page, limit });
         const where = { doctorId };
         if (patientId) where.patientId = patientId;
 
@@ -12,20 +13,16 @@ export class NoteService {
                 where,
                 orderBy: { createdAt: 'desc' },
                 include: { patient: { select: { fullName: true } } },
-                skip,
-                take: limit
+                skip: paginationParams.skip,
+                take: paginationParams.limit
             })
         ]);
 
-        return {
-            notes,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
-        };
+        return buildPaginatedResult(notes, {
+            page: paginationParams.page,
+            limit: paginationParams.limit,
+            total
+        });
     }
 
     static async getById(doctorId, id) {

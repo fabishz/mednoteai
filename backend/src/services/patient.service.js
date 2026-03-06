@@ -4,6 +4,7 @@ import { AuditAction, AuditEntityType } from '../constants/audit.js';
 import { runWithRequestContext } from '../middlewares/requestContext.js';
 import { AuditService } from './audit.service.js';
 import { DashboardService } from './dashboard.service.js';
+import { buildPaginatedResult, getPaginationParams } from '../utils/pagination.js';
 
 export class PatientService {
     static async ensurePatientExistsWithTenantCheck(id, options = {}) {
@@ -42,27 +43,23 @@ export class PatientService {
         return patient;
     }
 
-    static async getPatients({ page = 1, limit = 10 }) {
-        const skip = (page - 1) * limit;
+    static async getPatients({ page = 1, limit = 20 }) {
+        const paginationParams = getPaginationParams({ page, limit });
 
         const [total, patients] = await Promise.all([
             prisma.patient.count(),
             prisma.patient.findMany({
                 orderBy: { createdAt: 'desc' },
-                skip,
-                take: limit
+                skip: paginationParams.skip,
+                take: paginationParams.limit
             })
         ]);
 
-        return {
-            patients,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
-        };
+        return buildPaginatedResult(patients, {
+            page: paginationParams.page,
+            limit: paginationParams.limit,
+            total
+        });
     }
 
     static async getById(id) {
