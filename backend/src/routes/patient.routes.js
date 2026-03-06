@@ -102,6 +102,13 @@ router.get(
   patientController.search
 );
 
+router.get(
+  '/:id/export',
+  authorize(Permissions.PATIENT_READ),
+  validate(patientValidator.exportPatientSchema),
+  patientController.exportData
+);
+
 /**
  * @openapi
  * /api/patients/{id}:

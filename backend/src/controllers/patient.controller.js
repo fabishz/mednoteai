@@ -1,5 +1,7 @@
 import { PatientService } from '../services/patient.service.js';
+import { PatientExportService } from '../services/patient-export.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { buildPatientExportPdf } from '../utils/pdf.js';
 
 export const create = asyncHandler(async (req, res) => {
     const patient = await PatientService.create(req.user.id, req.validated.body);
@@ -55,5 +57,30 @@ export const restore = asyncHandler(async (req, res) => {
         success: true,
         message: 'Patient restored successfully',
         data: patient
+    });
+});
+
+export const exportData = asyncHandler(async (req, res) => {
+    const { id } = req.validated.params;
+    const { format } = req.validated.query;
+
+    const payload = await PatientExportService.exportPatientData({
+        actorUser: req.user,
+        patientId: id,
+        format
+    });
+
+    if (format === 'pdf') {
+        const doc = buildPatientExportPdf(payload);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=patient-${id}-export.pdf`);
+        doc.pipe(res);
+        doc.end();
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: payload
     });
 });

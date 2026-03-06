@@ -41,3 +41,15 @@ export const searchPatientsSchema = z.object({
         q: z.string().min(1, 'Search term is required').max(120)
     })
 });
+
+export const exportPatientSchema = z.object({
+    params: z.object({
+        id: z.string().uuid('Invalid patient ID')
+    }),
+    query: z.object({
+        format: z.preprocess(
+            (value) => (typeof value === 'string' ? value.toLowerCase() : value),
+            z.enum(['json', 'pdf']).default('json')
+        )
+    })
+});
