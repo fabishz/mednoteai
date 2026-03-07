@@ -13,3 +13,7 @@ secret_values = {
   HIPAA_AUDIT_TOKEN = "PROD_AUDIT_TOKEN"
 }
 ecs_desired_count    = 3
+enable_waf           = true
+waf_rate_limit       = 10000
+alb_access_logs_enabled = true
+alb_logs_retention_days = 365

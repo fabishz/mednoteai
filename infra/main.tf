@@ -61,6 +61,10 @@ module "ecs" {
   task_memory            = 1024
   desired_count          = var.ecs_desired_count
   region                 = var.region
+  enable_waf             = var.enable_waf
+  waf_rate_limit         = var.waf_rate_limit
+  alb_access_logs_enabled = var.alb_access_logs_enabled
+  alb_logs_retention_days = var.alb_logs_retention_days
 }
 
 output "backend_endpoint" {
@@ -77,4 +81,16 @@ output "redis_endpoint" {
 
 output "secrets_manager_arn" {
   value = module.secrets.secret_arn
+}
+
+output "waf_web_acl_arn" {
+  value = module.ecs.waf_web_acl_arn
+}
+
+output "alb_logs_bucket_name" {
+  value = module.ecs.alb_logs_bucket_name
+}
+
+output "rds_publicly_accessible" {
+  value = module.database.rds_publicly_accessible
 }

@@ -108,19 +108,12 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "Allow HTTP for health checks"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Forward traffic from ALB to ECS tasks only"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
   }
 
   tags = {
@@ -134,15 +127,9 @@ resource "aws_security_group" "ecs" {
   vpc_id      = aws_vpc.this.id
 
   ingress {
+    description     = "Allow only ALB HTTP traffic to backend tasks"
     from_port       = 80
     to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  ingress {
-    from_port       = 443
-    to_port         = 443
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }

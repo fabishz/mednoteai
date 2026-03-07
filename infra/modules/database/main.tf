@@ -59,3 +59,7 @@ output "db_port" {
 output "db_identifier" {
   value = aws_db_instance.postgres.id
 }
+
+output "rds_publicly_accessible" {
+  value = aws_db_instance.postgres.publicly_accessible
+}

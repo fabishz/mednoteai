@@ -13,3 +13,7 @@ secret_values = {
   HIPAA_AUDIT_TOKEN = "STAGING_AUDIT_TOKEN"
 }
 ecs_desired_count    = 2
+enable_waf           = true
+waf_rate_limit       = 5000
+alb_access_logs_enabled = true
+alb_logs_retention_days = 180

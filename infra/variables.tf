@@ -100,3 +100,27 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_waf" {
+  description = "Enable AWS WAF for the public ALB"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit" {
+  description = "Maximum requests per 5 minutes per source IP before WAF blocks"
+  type        = number
+  default     = 2000
+}
+
+variable "alb_access_logs_enabled" {
+  description = "Enable ALB access logs to S3"
+  type        = bool
+  default     = true
+}
+
+variable "alb_logs_retention_days" {
+  description = "Retention period for ALB access logs"
+  type        = number
+  default     = 90
+}
