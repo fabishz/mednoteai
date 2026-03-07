@@ -25,6 +25,8 @@ import encounterRoutes from './routes/encounter.routes.js';
 import templateRoutes from './routes/template.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import featureFlagRoutes from './routes/feature-flag.routes.js';
+import clinicRoutes from './routes/clinic.routes.js';
 
 export const app = express();
 
@@ -92,6 +94,8 @@ app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/templates', authMiddleware, templateRoutes);
 app.use('/api/settings', authMiddleware, settingsRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/feature-flags', authMiddleware, featureFlagRoutes);
+app.use('/api/clinics', authMiddleware, clinicRoutes);
 app.use('/billing', billingRoutes);
 
 app.use(notFound);

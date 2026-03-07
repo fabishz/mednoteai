@@ -48,8 +48,11 @@ model Clinic {
   voiceNotes   VoiceNote[]
   reports      Report[]
   templates    Template[]
+  featureFlags FeatureFlag[]
   subscription Subscription?
   retentionPolicy RetentionPolicy?
+  onboardingProgress OnboardingProgress?
+  invitations Invitation[]
 }
 
 enum SubscriptionPlan {
@@ -73,6 +76,7 @@ model User {
   notes      MedicalNote[]
   voiceNotes VoiceNote[]
   reports    Report[]
+  sentInvitations Invitation[]
 
   @@index([clinicId])
   @@index([clinicId, id])
@@ -223,4 +227,62 @@ model Subscription {
 
   @@unique([clinicId, id])
   @@index([stripeSubscriptionId])
+}
+
+model FeatureFlag {
+  id       String  @id @default(uuid())
+  name     String
+  enabled  Boolean @default(false)
+  clinicId String?
+  clinic   Clinic? @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+  @@index([clinicId])
+  @@unique([name, clinicId])
+}
+
+enum OnboardingStep {
+  CLINIC_SETUP
+  ADD_DOCTORS
+  ADD_PATIENTS
+  RECORD_NOTE
+  COMPLETE
+}
+
+model OnboardingProgress {
+  id          String        @id @default(uuid())
+  clinicId    String
+  currentStep OnboardingStep @default(CLINIC_SETUP)
+  completedSteps String[]    @default([])
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  clinic      Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId])
+  @@index([clinicId])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model Invitation {
+  id           String          @id @default(uuid())
+  email        String
+  clinicId     String
+  role         UserRole        @default(DOCTOR)
+  status       InvitationStatus @default(PENDING)
+  token        String          @unique @map("token")
+  expiresAt    DateTime
+  invitedById  String
+  createdAt    DateTime        @default(now())
+  acceptedAt   DateTime?
+  clinic       Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  invitedBy    User            @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([clinicId])
+  @@index([email])
+  @@map("Invitation")
 }
